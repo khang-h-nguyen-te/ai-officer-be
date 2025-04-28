@@ -119,19 +119,37 @@ class AgentAIOfficer:
     def _initialize_simple_agent(self):
         """Initialize a simplified agent without complex tools for fallback."""
         try:
-            # Initialize a basic LLM without advanced features
+            # Initialize the LLM with a timeout for API calls
             self.gpt4_llm = OpenAI_LLAMA(
-                model="gpt-3.5-turbo",  # Use a simpler model for fallback
-                timeout=10
+                model=config.llm_model,
+                timeout=20  # Add timeout for API calls
             )
             
-            # Create a minimal agent without complex tools
+            # Create semantic search tool
+            aiofficer_semantic_search_tool = AIOfficerSemanticSearchTool()
+            
+            # Create llama_index FunctionTool object
+            aiofficer_semantic_search_function_tool = FunctionTool.from_defaults(
+                name=aiofficer_semantic_search_tool.name,
+                description=aiofficer_semantic_search_tool.description,
+                fn=aiofficer_semantic_search_tool.__call__
+            )
+            try:
+                # Set up memory with configurable token limit
+                memory = ChatMemoryBuffer.from_defaults(token_limit=config.memory_token_limit)
+            except Exception as e:
+                self.logger.warning(f"Error setting up chat memory with token limit: {e}")
+                # Fall back to a simpler memory implementation without tokenization
+                memory = ChatMemoryBuffer(token_limit=100000)
+            
+
+            # Initialize agent with tools
             self.agent = OpenAIAgent.from_tools(
-                tools=[],  # No tools for simplified agent
+                tools=[aiofficer_semantic_search_function_tool],
                 llm=self.gpt4_llm,
-                memory=ChatMemoryBuffer(token_limit=500),
-                verbose=False,
-                system_prompt="You are an assistant that provides helpful information."
+                memory=memory,
+                verbose=True,
+                system_prompt=AIOFFICER_SYSTEM_TEMPLATE
             )
             
             with self._initialization_lock:
