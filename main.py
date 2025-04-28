@@ -5,9 +5,10 @@ import asyncio
 from concurrent.futures import ThreadPoolExecutor
 import logging
 import os
+import time
 
 # Configure for serverless first, before any imports that might use tiktoken
-from app.utils.serverless_utils import configure_for_serverless
+from app.utils.serverless_utils import configure_for_serverless, is_serverless_environment, get_serverless_info
 configure_for_serverless()
 
 # Import from our application structure
@@ -32,6 +33,9 @@ app = FastAPI(
     version="1.0.0"
 )
 executor = ThreadPoolExecutor(max_workers=4)
+
+# Record startup time
+startup_time = time.time()
 
 # Initialize agent - this will start background initialization
 ai_officer_agent = AgentAIOfficer()
@@ -65,17 +69,31 @@ async def ask_query(payload: QueryRequest, request: Request):
     Returns:
         The agent's response
     """
-    query = payload.query
-    logger.debug(f"Processing query: {query}")
-    
-    # Offload the blocking agent call to a thread pool to avoid blocking the event loop
-    loop = asyncio.get_event_loop()
-    result = await loop.run_in_executor(executor, process_query, query)
-    
-    if not result:
-        raise HTTPException(status_code=500, detail="Failed to process query")
-    
-    return {"response": result}
+    try:
+        query = payload.query
+        logger.debug(f"Processing query: {query}")
+        
+        # Offload the blocking agent call to a thread pool to avoid blocking the event loop
+        loop = asyncio.get_event_loop()
+        result = await loop.run_in_executor(executor, process_query, query)
+        
+        if not result:
+            logger.warning("Empty result returned from agent")
+            if is_serverless_environment():
+                # In serverless, provide a direct answer if agent returned empty result
+                return {"response": "I'm here to help with information about the AI Officer Institute. How can I assist you today?"}
+            else:
+                raise HTTPException(status_code=500, detail="Failed to process query")
+        
+        return {"response": result}
+    except Exception as e:
+        logger.error(f"Error processing query: {e}")
+        
+        # Provide a friendly response even on errors
+        if is_serverless_environment():
+            return {"response": "I'm here to help with information about the AI Officer Institute. How can I assist you today?"}
+        else:
+            raise HTTPException(status_code=500, detail=f"Error processing query: {str(e)}")
 
 # Improved health check endpoint with detailed agent status
 @app.get("/health", response_model=HealthResponse)
@@ -86,19 +104,51 @@ async def health_check():
     # Add more details about the agent initialization status
     details = {
         "agent": init_status["status"],
-        "message": init_status["message"]
+        "message": init_status["message"],
+        "uptime_seconds": time.time() - startup_time,
+        "is_serverless": is_serverless_environment()
     }
     
     # Add elapsed time if initializing
     if init_status["status"] == "initializing" and "elapsed_seconds" in init_status:
         details["elapsed_seconds"] = init_status["elapsed_seconds"]
     
+    # Add serverless info if applicable
+    if is_serverless_environment():
+        details["serverless_info"] = get_serverless_info()
+    
     return HealthResponse(status="ok", version="1.0.0", details=details)
+
+# Get serverless environment info
+@app.get("/serverless-info")
+async def serverless_info():
+    """Get information about the serverless environment."""
+    if is_serverless_environment():
+        return {
+            "is_serverless": True,
+            "info": get_serverless_info(),
+            "agent_status": ai_officer_agent.initialization_status(),
+            "uptime_seconds": time.time() - startup_time
+        }
+    else:
+        return {"is_serverless": False}
+
+# Startup and shutdown events
+@app.on_event("startup")
+async def startup_event():
+    """Run on application startup."""
+    logger.info(f"Application starting up. Serverless environment: {is_serverless_environment()}")
+
+@app.on_event("shutdown")
+async def shutdown_event():
+    """Run on application shutdown."""
+    logger.info("Application shutting down")
+    executor.shutdown(wait=False)
 
 # ------------------------------------------------------------
 # Main Function
 # ------------------------------------------------------------
-# if __name__ == "__main__":
-#     # Run the FastAPI app using uvicorn
-#     port = int(os.environ.get("PORT", 8000))
-#     uvicorn.run("main:app", host="0.0.0.0", port=port) 
+if __name__ == "__main__":
+    # Run the FastAPI app using uvicorn
+    port = int(os.environ.get("PORT", 8000))
+    uvicorn.run("main:app", host="0.0.0.0", port=port) 

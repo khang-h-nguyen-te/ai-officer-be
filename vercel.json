@@ -18,7 +18,14 @@
   ],
   "env": {
     "PYTHONUNBUFFERED": "1",
-    "MAX_MEMORY": "1024",
-    "MAX_DURATION": "60"
+    "MAX_MEMORY": "2048",
+    "MAX_DURATION": "60",
+    "VERCEL": "1"
+  },
+  "functions": {
+    "main.py": {
+      "memory": 2048,
+      "maxDuration": 60
+    }
   }
 } 
