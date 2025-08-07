@@ -16,6 +16,7 @@ from app.agent.agent_aiofficer import AgentAIOfficer
 from app.models.request_models import QueryRequest, HealthResponse
 from app.utils.response_utils import create_response
 from app.config.env_config import config
+from app.utils.chat_history import store_chat_history
 
 # Configure logging
 logging.basicConfig(
@@ -84,6 +85,11 @@ async def ask_query(payload: QueryRequest, request: Request):
                 return {"response": "I'm here to help with information about the AI Officer Institute. How can I assist you today?"}
             else:
                 raise HTTPException(status_code=500, detail="Failed to process query")
+        
+        # Store the chat history
+        history_id = store_chat_history(query, result)
+        if not history_id:
+            logger.warning("Failed to store chat history")
         
         return {"response": result}
     except Exception as e:

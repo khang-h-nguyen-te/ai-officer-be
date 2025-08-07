@@ -44,4 +44,4 @@ def get_supabase_client(auth_header: str = None) -> Client:
             return client
         except Exception as sub_e:
             logger.error(f"Failed to create Supabase client with alternative method: {sub_e}")
-            raise 
+            raise
