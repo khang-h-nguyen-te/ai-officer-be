@@ -24,7 +24,7 @@ config = {
     "supabase_key": os.getenv("SUPABASE_KEY"),
     
     # Vector Store Configuration
-    "vector_store_table": os.getenv("VECTOR_STORE_TABLE", "aiofficer"),
+    "vector_store_table": os.getenv("VECTOR_STORE_TABLE", "silklounge"),
     
     # Logging Configuration
     "log_level": os.getenv("LOG_LEVEL", "INFO"),

@@ -1,6 +1,6 @@
-# AI Officer PDF Embedding and Vector Storage
+# Silk Lounge FAQ Chatbot
 
-A toolkit for processing PDF documents, generating embeddings using OpenAI, and storing them in a Supabase vector database for semantic search.
+A sophisticated chatbot for Silk Lounge that processes FAQ documents, generates embeddings using OpenAI, and stores them in a Supabase vector database for semantic search to provide accurate answers about Silk Lounge services and amenities.
 
 ## Features
 
@@ -20,10 +20,9 @@ A toolkit for processing PDF documents, generating embeddings using OpenAI, and 
 
 ### Installation
 
-1. Clone the repository
+1. Navigate to the project directory
    ```bash
-   git clone https://github.com/yourusername/ai-officer.git
-   cd ai-officer
+   cd silk_be
    ```
 
 2. Install dependencies
@@ -42,7 +41,7 @@ A toolkit for processing PDF documents, generating embeddings using OpenAI, and 
 Create a table in Supabase with the following structure:
 
 ```sql
-CREATE TABLE aiofficer (
+CREATE TABLE silklounge (
   id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
   content TEXT,
   metadata JSONB,
@@ -50,14 +49,14 @@ CREATE TABLE aiofficer (
 );
 
 -- Create a function for similarity search
-CREATE OR REPLACE FUNCTION match_documents(
+CREATE OR REPLACE FUNCTION semantic_search_silklounge(
   query_embedding VECTOR(1536),
-  match_threshold FLOAT,
-  match_count INT
+  match_threshold FLOAT DEFAULT 0.5,
+  match_count INT DEFAULT 5
 )
 RETURNS TABLE (
   id UUID,
-  content TEXT,
+  text TEXT,
   metadata JSONB,
   similarity FLOAT
 )
@@ -66,12 +65,12 @@ AS $$
 BEGIN
   RETURN QUERY
   SELECT
-    id,
-    content,
-    metadata,
-    1 - (embedding <=> query_embedding) AS similarity
-  FROM aiofficer
-  WHERE 1 - (embedding <=> query_embedding) > match_threshold
+    silklounge.id,
+    silklounge.content as text,
+    silklounge.metadata,
+    1 - (silklounge.embedding <=> query_embedding) AS similarity
+  FROM silklounge
+  WHERE 1 - (silklounge.embedding <=> query_embedding) > match_threshold
   ORDER BY similarity DESC
   LIMIT match_count;
 END;
@@ -98,7 +97,7 @@ from app.utils.process_faq import FAQProcessor
 processor = FAQProcessor()
 
 # Process a PDF file and store in Supabase
-doc_ids = processor.process_and_store("path/to/your/file.pdf", table_name="aiofficer")
+doc_ids = processor.process_and_store("path/to/your/file.pdf", table_name="silklounge")
 ```
 
 ### Querying the Vector Store
@@ -120,12 +119,12 @@ def generate_embedding(text):
     return response.data[0].embedding
 
 # Search for similar documents
-query = "What is an AI Officer?"
+query = "What are the operating hours of Silk Lounge?"
 query_embedding = generate_embedding(query)
 results = supabase_client.similarity_search(
     query_embedding, 
     limit=3,
-    table_name="aiofficer"
+    table_name="silklounge"
 )
 
 # Process results
@@ -138,18 +137,30 @@ for i, result in enumerate(results):
 ## Project Structure
 
 ```
-ai-officer/
+silk_be/
 ├── app/
+│   ├── agent/
+│   │   └── agent_silklounge.py  # Main Silk Lounge agent
 │   ├── config/
 │   │   ├── env_config.py        # Environment configuration
 │   │   └── supabase_config.py   # Supabase client configuration
+│   ├── models/
+│   │   └── request_models.py    # API request/response models
+│   ├── services/
+│   │   └── embeddings.py        # Embedding service
+│   ├── templates/
+│   │   └── prompt_templates.py  # System prompts for Silk Lounge
+│   ├── tools/
+│   │   └── search/
+│   │       └── silklounge_semantic_search_tool.py # Semantic search tool
 │   ├── utils/
 │   │   ├── pdf_to_vectorstore.py # PDF processing utility
 │   │   └── process_faq.py       # Main processing script
 │   └── vectorstore/
 │       └── supabase_vectorstore.py # Supabase vector store client
-├── .env.example                 # Example environment variables
+├── main.py                      # FastAPI application
 ├── requirements.txt             # Python dependencies
+├── vercel.json                  # Vercel deployment config
 └── README.md                    # This file
 ```
 

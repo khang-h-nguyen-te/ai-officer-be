@@ -19,7 +19,7 @@ def store_chat_history(user_query: str, chatbot_reply: str) -> Optional[int]:
         supabase = get_supabase_client()
         
         # Insert the chat history record
-        response = supabase.table('aio_chat_history').insert({
+        response = supabase.table('silk_chat_history').insert({
             'user_query': user_query,
             'chatbot_reply': chatbot_reply
         }).execute()

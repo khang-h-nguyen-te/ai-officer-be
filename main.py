@@ -12,7 +12,7 @@ from app.utils.serverless_utils import configure_for_serverless, is_serverless_e
 configure_for_serverless()
 
 # Import from our application structure
-from app.agent.agent_aiofficer import AgentAIOfficer
+from app.agent.agent_silklounge import AgentSilkLounge
 from app.models.request_models import QueryRequest, HealthResponse
 from app.utils.response_utils import create_response
 from app.config.env_config import config
@@ -29,8 +29,8 @@ logger = logging.getLogger(__name__)
 
 # Create FastAPI app
 app = FastAPI(
-    title="AI-Officer Chatbot API",
-    description="API for interacting with the AI-Officer Chatbot",
+    title="Silk Lounge Chatbot API",
+    description="API for interacting with the Silk Lounge FAQ Chatbot",
     version="1.0.0"
 )
 executor = ThreadPoolExecutor(max_workers=4)
@@ -39,8 +39,8 @@ executor = ThreadPoolExecutor(max_workers=4)
 startup_time = time.time()
 
 # Initialize agent - this will start background initialization
-ai_officer_agent = AgentAIOfficer()
-logger.info("AI-Officer agent instance created - initialization started in background")
+silk_lounge_agent = AgentSilkLounge()
+logger.info("Silk Lounge agent instance created - initialization started in background")
 
 # A helper function to process the query synchronously
 def process_query(query: str) -> str:
@@ -54,7 +54,7 @@ def process_query(query: str) -> str:
         The agent's response
     """
     # The agent_query method now handles the case when the agent is not initialized
-    response = ai_officer_agent.agent_query(query)
+    response = silk_lounge_agent.agent_query(query)
     return response
     
 # Define a POST endpoint to receive user queries
@@ -82,7 +82,7 @@ async def ask_query(payload: QueryRequest, request: Request):
             logger.warning("Empty result returned from agent")
             if is_serverless_environment():
                 # In serverless, provide a direct answer if agent returned empty result
-                return {"response": "I'm here to help with information about the AI Officer Institute. How can I assist you today?"}
+                return {"response": "I'm here to help with information about Silk Lounge. How can I assist you today?"}
             else:
                 raise HTTPException(status_code=500, detail="Failed to process query")
         
@@ -97,7 +97,7 @@ async def ask_query(payload: QueryRequest, request: Request):
         
         # Provide a friendly response even on errors
         if is_serverless_environment():
-            return {"response": "I'm here to help with information about the AI Officer Institute. How can I assist you today?"}
+            return {"response": "I'm here to help with information about Silk Lounge. How can I assist you today?"}
         else:
             raise HTTPException(status_code=500, detail=f"Error processing query: {str(e)}")
 
@@ -105,7 +105,7 @@ async def ask_query(payload: QueryRequest, request: Request):
 @app.get("/health", response_model=HealthResponse)
 async def health_check():
     """Enhanced health check endpoint with agent initialization status."""
-    init_status = ai_officer_agent.initialization_status()
+    init_status = silk_lounge_agent.initialization_status()
     
     # Add more details about the agent initialization status
     details = {
@@ -133,7 +133,7 @@ async def serverless_info():
         return {
             "is_serverless": True,
             "info": get_serverless_info(),
-            "agent_status": ai_officer_agent.initialization_status(),
+            "agent_status": silk_lounge_agent.initialization_status(),
             "uptime_seconds": time.time() - startup_time
         }
     else:

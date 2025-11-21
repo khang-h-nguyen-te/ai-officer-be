@@ -19,7 +19,7 @@ class SupabaseVectorStore:
         self.auth = auth
         self.client = get_supabase_client(self.auth)
         
-    def create_table_if_not_exists(self, table_name: str = "pho24_faq_embeddings"):
+    def create_table_if_not_exists(self, table_name: str = "silklounge_faq_embeddings"):
         """
         Create the embeddings table if it doesn't exist.
         This is a simplified version and should be adapted to your Supabase setup.
@@ -32,7 +32,7 @@ class SupabaseVectorStore:
         logger.info(f"Table creation would typically be handled through migrations: {table_name}")
         logger.info("Please ensure your Supabase database has the appropriate tables set up.")
         
-    def upsert_documents(self, documents: List[Dict[str, Any]], table_name: str = "pho24_faq_embeddings") -> List[str]:
+    def upsert_documents(self, documents: List[Dict[str, Any]], table_name: str = "silklounge_faq_embeddings") -> List[str]:
         """
         Insert or update documents with embeddings into the vector store.
         
@@ -69,7 +69,7 @@ class SupabaseVectorStore:
             
         return document_ids
         
-    def similarity_search(self, query_embedding: List[float], limit: int = 5, table_name: str = "pho24_faq_embeddings"):
+    def similarity_search(self, query_embedding: List[float], limit: int = 5, table_name: str = "silklounge_faq_embeddings"):
         """
         Perform a similarity search using the query embedding.
         

@@ -1,14 +1,15 @@
 import os
 import sys
+
+# Add parent directory to path to ensure imports work regardless of where script is run from
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '../..')))
+
 import logging
 from dotenv import load_dotenv
 import nest_asyncio
 from llama_cloud_services import LlamaParse
 from openai import OpenAI
 from app.vectorstore.supabase_vectorstore import SupabaseVectorStore
-
-# Add parent directory to path to ensure imports work regardless of where script is run from
-sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '../..')))
 
 # Now import from app package
 
@@ -96,12 +97,12 @@ class FAQProcessor:
         
         return document
     
-    def store_in_supabase(self, documents, table_name="aiofficer"):
+    def store_in_supabase(self, documents, table_name="silk"):
         """Store documents in Supabase."""
         logger.info(f"Storing {len(documents)} documents in Supabase table: {table_name}")
         return self.supabase_client.upsert_documents(documents, table_name=table_name)
     
-    def process_and_store(self, pdf_path, table_name="aiofficer"):
+    def process_and_store(self, pdf_path, table_name="silk"):
         """Process PDF and store in Supabase."""
         # Parse PDF
         result = self.parse_pdf(pdf_path)
@@ -129,7 +130,7 @@ class FAQProcessor:
 def main():
     """Main function to run the FAQ processor."""
     # Path to FAQ PDF file
-    pdf_path = "./FAQ.pdf"
+    pdf_path = "./FAQs for Chatbox - Silk Lounge.pdf"
     
     try:
         processor = FAQProcessor()
